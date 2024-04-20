@@ -6,6 +6,7 @@ const { verifyToken } = require("../middleware/verifyToken");
 //delete functions use req.params to access user, routine and excercise
 //upon successful delete, message is sent back to user via json
 const deleteExercise = async(req,res,next) => {
+    console.log('delete exercise Hit')
 
     const { userId, routineId, exerciseId } = req.params;
     
@@ -18,7 +19,7 @@ const deleteExercise = async(req,res,next) => {
         const oldRoutine = user.routines.id(routineId);
         const oldExercise = oldRoutine.exercises.id(exerciseId);
 
-        console.log("This is the old routine", oldExercise);
+        // console.log("This is the old routine", oldExercise);
 
         //delete routine
         await User.updateOne(
@@ -34,29 +35,30 @@ const deleteExercise = async(req,res,next) => {
 
 //update routines use req.body to pass user data from front end to database for update
 //upon successful update, message is sent back to user via json
-const updateExercise = async(req, res, next) => {
+const updateExercise = async (req, res, next) => {
+    console.log('updateExercise Hit')
+    const { userId, routineId, exerciseId } = req.params;
+    const { sets, reps, weight } = req.body;
+    console.log(sets + reps + weight)
+    try {
+        const updatedExercise = await Exercise.findByIdAndUpdate(
+            exerciseId,
+            { $set: { sets, reps, weight } },
+            { new: true, runValidators: true }
+        );
 
-    const {userId, routineId, exerciseId} = req.body;
+        console.log(updateExercise)
 
-    try{
-        //find schema by userId
-        const user = await User.findById(userId);
+        if (!updatedExercise) {
+            return res.status(404).json({ message: "Exercise not found" });
+        }
 
-        //find routine to update by routineId
-        const oldRoutine = user.routines.id(routineId);
-
-        console.log("This is the old routine", oldRoutine);
-
-        //update entire oldRoutine with updatedRoutine
-        Object.assign(oldRoutine, updatedRoutine);
-        await user.save();
-
-    }catch(err){
-        console.log(err);
-        return res.status;
+        res.json(updatedExercise);
+    } catch (error) {
+        console.error("Failed to update exercise:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
-
-}
+};
 
 const createExercise = async(req, res, next) => {
 

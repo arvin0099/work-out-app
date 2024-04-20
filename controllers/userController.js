@@ -90,7 +90,7 @@ const login = async(req,res) => {
         //const lastDate = await findLastWorkout(foundUser[0]._id);
 
         //passthe frontend our JWT with the user
-        return res.status(200).json({token, id: foundUser[0]._id, username: foundUser[0].username, lastDate: lastDate})
+        return res.status(200).json({token, id: foundUser[0]._id, username: foundUser[0].username })
     }catch(err){
         console.log(err);
         return res.status(500).json({error: "Internal server error"});
@@ -110,13 +110,30 @@ const getUser = async(req,res)=>{
             return res.status(400).json({error: "User not found"});
         }
 
-        return res.status(200).json({message: "Successfully found user", data: foundUser});
-
     }catch(err){
         console.log(err);
         return res.status(500).json({error: "Internal server error"});
     }
 }
+
+const getUserData = async (req, res) => {
+    const id = req.params.id
+    console.log('this is the ID ' + id)
+    try {
+        const user = await User.findById(id).select('-password')
+        console.log('Fetched user data:', user);
+
+        if (!user) {
+            console.log('No user found with ID:', id);
+            return res.status(404).json({ message: 'User not found' })
+        }
+
+        res.json(user)
+    } catch (err) {
+        console.error('Error fetching user:', err);
+        res.status(500).json({ message: 'Internal server error', error: err.message })
+    }
+};
 
 const deleteUser = async(req, res) => {
     try{
@@ -128,17 +145,40 @@ const deleteUser = async(req, res) => {
 }
 
 const updateUser = async(req, res) =>{
-    try{
+    console.log("Update user route hit")
+    const userId = req.params.userId
+    const { firstName, lastName, dob, weight } = req.body
+    try {
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            {
+                $set: {
+                    firstName: firstName,
+                    lastName: lastName,
+                    bodyWeight: weight
+                }
+            },
+            {
+                new: true,
+                runValidators: true
+            }
+        );
 
-    }catch(err){
-
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.status(200).json({ message: "User updated successfully", data: updatedUser });
+    } catch (error) {
+        console.error('Error updating user:', error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
-}
+};
 
 module.exports = {
     getUser,
     signup,
     login,
     deleteUser,
-    updateUser
+    updateUser,
+    getUserData
 }

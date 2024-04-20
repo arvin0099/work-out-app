@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema({
     email: {type: String, unique: true, required: true},
     firstName: String,
     lastName: String,
-    DOB: Date,
+    dob: Date,
     bodyWeight: Number,
     routines: [routineSchema],
 

@@ -23,6 +23,14 @@ const createRoutine = async(req, res, next) => {
     }
 }
 
+const showCreateRoutine = async(req, res, next) => {
+    try{
+
+    }catch(err){
+        console.log(err)
+    }
+}
+
 //shows routines on frontend at route address in index.js
 const readRoutine = async(req,res,next) => {
    
@@ -43,67 +51,70 @@ const readRoutine = async(req,res,next) => {
 //update routines use req.body to pass user data from front end to database for update
 //upon successful update, message is sent back to user via json
 // RETURNING OBJECT {BLAH BLAH}
-const updateRoutine = async(req, res, next) => {
+const updateRoutine = async (req, res) => {
+    const { userId, routineId } = req.params;
+    const { name, day } = req.body;
 
-    const {userId, routineId} = req.params;
-    const updatedRoutine = req.body;
-    
-    console.log("Updated Routine", updatedRoutine);
-    try{
-        //find schema by userId
-        const user = await User.findById(userId);
+    console.log("Update routine route hit");
+    console.log("UserID:");
+    console.log("Data to update:", name, day);
+//Routes are not my specialty and having some difficulty with them, had to have some help with chatGPT
+    try {
+        const user = await User.findOneAndUpdate(
+            { "_id": userId, "routines._id": routineId },
+            {
+                "$set": {
+                    "routines.$.name": name,
+                    "routines.$.day": day,
+                }
+            },
+            { new: true }
+        );
 
-        //find routine to update by routineId
-        const oldRoutine = user.routines.id(routineId);
-
-        console.log("This is the old routine", oldRoutine);
-
-        //update entire oldRoutine with updatedRoutine
-        Object.assign(oldRoutine, updatedRoutine);
-        await user.save();
-
-
-    }catch(err){
-        console.log(err);
-        return res.status;
+        if (!user) {
+            return res.status(404).json({ message: "Routine not found in the specified user." });
+        }
+        res.status(200).json({ message: "Routine updated successfully"});
+    } catch (error) {
+        console.error('Error updating routine:', error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
-
 }
+
 
 
 
 //delete functions use req.params to access user, routine and exercise
 //upon successful delete, message is sent back to user via json
-const deleteRoutine = async(req,res,next) => {
-
+const deleteRoutine = async (req, res) => {
     const { userId, routineId } = req.params;
-    
-    try{
 
-        //find schema by userId
-        const user = await User.findById(userId);
-
-        //find routine to update by routineId
-        const oldRoutine = user.routines.id(routineId);
-
-        console.log("This is the old routine", oldRoutine);
-
-        //delete routine
-        await User.updateOne(
-            {_id: userId },
-            { $pull: { routines: {_id: routineId}}}
+    try {
+        const result = await User.findByIdAndUpdate(
+            userId,
+            { $pull: { routines: { _id: routineId } } },
+            { new: true }
         );
 
+        if (!result) {
+            return res.status(404).json({ message: "User not found or routine cannot be removed." });
+        }
 
-    }catch(err){
-        console.log(err);
-        return res.status;
+        if (result.routines.id(routineId) === null) {
+            res.status(200).json({ message: "Routine deleted successfully" });
+        } else {
+            throw new Error("Deletion failed");
+        }
+    } catch (error) {
+        console.error('Error deleting routine:', error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
-}
+};
 
 module.exports = {
    deleteRoutine,
    updateRoutine,
    createRoutine,
-   readRoutine
+   readRoutine,
+   showCreateRoutine
 }
